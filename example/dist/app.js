@@ -20,6 +20,7 @@ var Step = exports.Step = function () {
     this.template = params.template || '';
     this.from = null;
     this._data = {};
+    params.interceptors = params.interceptors || {};
     this.interceptors = {
       beforeRender: params.interceptors.beforeRender || this.methods.beforeRender || function () {
         return { status: true };
@@ -62,7 +63,7 @@ var Step = exports.Step = function () {
 }();
 
 },{}],2:[function(require,module,exports){
-"use strict";
+'use strict';
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -101,85 +102,90 @@ var StepSystem = exports.StepSystem = function () {
 
 
   _createClass(StepSystem, [{
-    key: "addStep",
+    key: 'addStep',
     value: function addStep(step) {
       step.parent = this;
-      this._steps.push(step);
+      this._steps[step.name] = step;
       return this;
     }
   }, {
-    key: "setHandlers",
+    key: 'setHandlers',
     value: function setHandlers(cb) {
       this.commonHandlers = cb;
       return this;
     }
   }, {
-    key: "step",
+    key: 'step',
     value: function step(name) {
       return this._steps[name];
     }
   }, {
-    key: "render",
+    key: 'render',
     value: function render(step) {
       var _br = step.interceptors.beforeRender();
       if (!_br.status) {
         if (_br.onError) _br.onError();
         return this;
       }
-      this.container.html(step.template);
+      this.container.find('.step').html(step.template || this._container.find('#' + step.name).html());
     }
   }, {
-    key: "goNext",
+    key: 'goNext',
     value: function goNext() {
-      var _bn = step.interceptors.beforeNext();
+      var curr_step = this.current_step || {};
+      var next_step = curr_step.next || null;
+      var _bn = curr_step.interceptors.beforeNext();
       if (!_bn.status) {
         if (_bn.onError) _bn.onError();
         return this;
       }
-      var curr_step = this.current_step || {};
-      var next_step = curr_step.next || null;
       if (next_step) {
         this.goToStep(this.step(next_step));
       }
     }
   }, {
-    key: "goBack",
+    key: 'goBack',
     value: function goBack() {
-      var _bb = step.interceptors.beforeBack();
+      var curr_step = this.current_step || {};
+      var prev_step = curr_step.from || null;
+      var _bb = curr_step.interceptors.beforeBack();
       if (!_bb.status) {
         if (_bb.onError) _bb.onError();
         return this;
       }
-      var curr_step = this.current_step || {};
-      var prev_step = curr_step.from || null;
       if (prev_step) {
         this.goToStep(this.step(prev_step));
       }
     }
   }, {
-    key: "goToStep",
+    key: 'goToStep',
     value: function goToStep(step) {
+      var from = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+
       var curr_step = this.current_step || {};
       step.from = curr_step.name || null;
+      this._current_step = step.name;
       this.render(step);
     }
   }, {
-    key: "init",
-    value: function init() {
+    key: 'init',
+    value: function init(from_step) {
       this.commonHandlers();
+      this._current_step = from_step;
+      this.render(this.step(this._current_step));
     }
   }, {
-    key: "current_step",
+    key: 'current_step',
     get: function get() {
-      return this.steps[this._current_step] || null;
+      return this.step(this._current_step) || null;
     }
   }, {
-    key: "container",
+    key: 'container',
     get: function get() {
       return this._container;
     }
   }, {
-    key: "steps",
+    key: 'steps',
     get: function get() {
       return this._steps;
     }
@@ -195,11 +201,50 @@ var _Step = require('../classes/Step');
 
 var _StepSystem = require('../classes/StepSystem');
 
-window.app = new _StepSystem.StepSystem();
+window.app = new _StepSystem.StepSystem($('.container'));
 
-(function ($, app) {
-  console.log(app);
-})(jQuery, window.app);
+(function (app) {
+
+  var first_step = 'first-step';
+
+  app
+  /**
+   * FIRST STEP
+   */
+  .addStep(new _Step.Step({
+    name: 'first-step',
+    next: 'second-step',
+    methods: {
+      beforeRender: function beforeRender() {
+        console.log('first-step beforeRender');
+        return { status: true };
+      },
+      beforeNext: function beforeNext() {
+        console.log('first-step beforeNext');
+        return { status: true };
+      }
+    }
+  }))
+
+  /**
+   * SECOND STEP
+   */
+  .addStep(new _Step.Step({
+    name: 'second-step',
+    methods: {
+      beforeRender: function beforeRender() {
+        console.log('second-step beforeRender');
+        return { status: true };
+      },
+      beforeNext: function beforeNext() {
+        console.log('second-step beforeNext');
+        return { status: true };
+      }
+    }
+  }));
+
+  app.init(first_step);
+})(window.app);
 
 },{"../classes/Step":1,"../classes/StepSystem":2}]},{},[3])
 

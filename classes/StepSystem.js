@@ -24,7 +24,7 @@ export class StepSystem {
    */
   addStep (step) {
     step.parent = this
-    this._steps.push(step)
+    this._steps[step.name] = step
     return this
   }
 
@@ -34,7 +34,7 @@ export class StepSystem {
   }
 
   get current_step () {
-    return this.steps[this._current_step] || null
+    return this.step(this._current_step) || null
   }
 
   step (name) {
@@ -55,42 +55,45 @@ export class StepSystem {
       if (_br.onError) _br.onError()
       return this
     }
-    this.container.html(step.template)
+    this.container.find('.step').html(step.template || this._container.find(`#${step.name}`).html())
   }
 
   goNext () {
-    let _bn = step.interceptors.beforeNext()
+    let curr_step = this.current_step || {}
+    let next_step = curr_step.next || null
+    let _bn = curr_step.interceptors.beforeNext()
     if (!_bn.status) {
       if (_bn.onError) _bn.onError()
       return this
     }
-    let curr_step = this.current_step || {}
-    let next_step = curr_step.next || null
     if (next_step) {
       this.goToStep(this.step(next_step))
     }
   }
 
   goBack () {
-    let _bb = step.interceptors.beforeBack()
+    let curr_step = this.current_step || {}
+    let prev_step = curr_step.from || null
+    let _bb = curr_step.interceptors.beforeBack()
     if (!_bb.status) {
       if (_bb.onError) _bb.onError()
       return this
     }
-    let curr_step = this.current_step || {}
-    let prev_step = curr_step.from || null
     if (prev_step) {
       this.goToStep(this.step(prev_step))
     }
   }
 
-  goToStep (step) {
+  goToStep (step, from = null) {
     let curr_step = this.current_step || {}
     step.from = curr_step.name || null
+    this._current_step = step.name
     this.render(step)
   }
 
-  init () {
+  init (from_step) {
     this.commonHandlers()
+    this._current_step = from_step
+    this.render(this.step(this._current_step))
   }
 }
