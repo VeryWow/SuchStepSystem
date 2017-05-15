@@ -10,14 +10,19 @@
     "babel-preset-latest": "^6.24.1",
     "babel-register": "^6.22.0",
     "babelify": "^7.3.0",
-    "browserify": "^0.5.1",
-    "gulp": "github:gulpjs/gulp#4.0",
+    "browserify": "14.3.0",
+    "gulp": "3.9.1",
     "gulp-babel": "^6.1.2",
     "gulp-concat": "^2.6.1",
+    "gulp-connect": "^5.0.0",
+    "gulp-open": "^2.0.0",
     "gulp-plumber": "^1.1.0",
+    "gulp-sourcemaps": "^2.6.0",
     "gulp-uglify": "^2.0.1",
+    "reactify": "^1.1.1",
     "vinyl-buffer": "^1.0.0",
-    "vinyl-source-stream": "^1.1.0"
+    "vinyl-source-stream": "^1.1.0",
+    "watchify": "^3.9.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

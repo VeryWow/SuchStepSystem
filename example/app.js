@@ -1,4 +1,8 @@
-import { Step } from './classes/Step'
-import { StepSystem } from './classes/StepSystem'
+import { Step } from '../classes/Step'
+import { StepSystem } from '../classes/StepSystem'
 
-const app = new StepSystem()
+window.app = new StepSystem();
+
+(function ($, app) {
+  console.log(app)
+})(jQuery, window.app)
