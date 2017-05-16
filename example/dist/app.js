@@ -93,8 +93,10 @@ var StepSystem = exports.StepSystem = function () {
     this._current_step = null;
     this._container = container;
     this.steps_past = [];
-    this.onFinish = null;
+    this.progress = 0;
     this.commonHandlers = function () {};
+    this.onFinish = function () {};
+    this.onProgress = function () {};
   }
 
   /**
@@ -133,6 +135,22 @@ var StepSystem = exports.StepSystem = function () {
       if (step.methods.onRender) {
         step.methods.onRender();
       }
+    }
+  }, {
+    key: 'updateProgress',
+    value: function updateProgress() {
+      var future_steps = 0;
+      var iteration_step = this.current_step;
+      var iteration_next_step = iteration_step.next;
+      while (iteration_next_step) {
+        if (!iteration_step.ignore_progress) {
+          future_steps++;
+        }
+        iteration_step = this.step(iteration_next_step);
+        iteration_next_step = iteration_step.next;
+      }
+      this.progress = this.steps_past.length * 100 / (this.steps_past.length + future_steps);
+      this.onProgress(this.progress);
     }
   }, {
     key: 'goNext',
@@ -180,6 +198,7 @@ var StepSystem = exports.StepSystem = function () {
       if (this.steps_past.indexOf(step.name) < 0) {
         this.steps_past.push(step.name);
       }
+      this.updateProgress();
     }
   }, {
     key: 'collectData',
@@ -306,6 +325,10 @@ window.app = new _StepSystem.StepSystem($('.container'));
 
   app.onFinish = function () {
     console.log(app.collectData());
+  };
+
+  app.onProgress = function (progress) {
+    app.container.find('.progress').html(Math.floor(progress) + '%');
   };
 
   app.init(first_step);

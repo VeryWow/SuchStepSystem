@@ -84,6 +84,10 @@ window.app = new StepSystem($('.container'));
     console.log(app.collectData())
   }
 
+  app.onProgress = (progress) => {
+    app.container.find('.progress').html(Math.floor(progress) + '%')
+  }
+
   app.init(first_step)
 
 })(window.app)

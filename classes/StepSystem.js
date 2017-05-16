@@ -16,8 +16,10 @@ export class StepSystem {
     this._current_step = null
     this._container = container
     this.steps_past = []
-    this.onFinish = null
+    this.progress = 0
     this.commonHandlers = function () {}
+    this.onFinish = function () {}
+    this.onProgress = function () {}
   }
 
   /**
@@ -63,6 +65,21 @@ export class StepSystem {
     }
   }
 
+  updateProgress () {
+    let future_steps = 0
+    let iteration_step = this.current_step
+    let iteration_next_step = iteration_step.next
+    while (iteration_next_step) {
+      if (!iteration_step.ignore_progress) {
+        future_steps++
+      }
+      iteration_step = this.step(iteration_next_step)
+      iteration_next_step = iteration_step.next
+    }
+    this.progress = (this.steps_past.length * 100) / (this.steps_past.length + future_steps)
+    this.onProgress(this.progress)
+  }
+
   goNext () {
     let curr_step = this.current_step || {}
     let next_step = curr_step.next || null
@@ -103,6 +120,7 @@ export class StepSystem {
     if (this.steps_past.indexOf(step.name) < 0) {
       this.steps_past.push(step.name)
     }
+    this.updateProgress()
   }
 
   collectData () {
