@@ -92,6 +92,8 @@ var StepSystem = exports.StepSystem = function () {
     this._steps = {};
     this._current_step = null;
     this._container = container;
+    this.steps_past = [];
+    this.onFinish = null;
     this.commonHandlers = function () {};
   }
 
@@ -128,6 +130,9 @@ var StepSystem = exports.StepSystem = function () {
         return this;
       }
       this.container.find('.step').html(step.template || this._container.find('#' + step.name).html());
+      if (step.methods.onRender) {
+        step.methods.onRender();
+      }
     }
   }, {
     key: 'goNext',
@@ -140,7 +145,11 @@ var StepSystem = exports.StepSystem = function () {
         return this;
       }
       if (next_step) {
-        this.goToStep(this.step(next_step));
+        this.goToStep(this.step(next_step), curr_step.name);
+      } else {
+        if (this.onFinish) {
+          this.onFinish();
+        }
       }
     }
   }, {
@@ -155,6 +164,7 @@ var StepSystem = exports.StepSystem = function () {
       }
       if (prev_step) {
         this.goToStep(this.step(prev_step));
+        this.steps_past.pop();
       }
     }
   }, {
@@ -162,17 +172,30 @@ var StepSystem = exports.StepSystem = function () {
     value: function goToStep(step) {
       var from = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
 
-      var curr_step = this.current_step || {};
-      step.from = curr_step.name || null;
+      if (from) {
+        step.from = from;
+      }
       this._current_step = step.name;
       this.render(step);
+      if (this.steps_past.indexOf(step.name) < 0) {
+        this.steps_past.push(step.name);
+      }
+    }
+  }, {
+    key: 'collectData',
+    value: function collectData() {
+      var data = {};
+      for (var step in this.steps_past) {
+        data[this.steps_past[step]] = this.step(this.steps_past[step]).data;
+      }
+      return data;
     }
   }, {
     key: 'init',
     value: function init(from_step) {
       this.commonHandlers();
       this._current_step = from_step;
-      this.render(this.step(this._current_step));
+      this.goToStep(this.step(this._current_step));
     }
   }, {
     key: 'current_step',
@@ -204,10 +227,18 @@ var _StepSystem = require('../classes/StepSystem');
 window.app = new _StepSystem.StepSystem($('.container'));
 
 (function (app) {
+  var _this = this;
 
   var first_step = 'first-step';
 
   app
+  /**
+   * COMMON HANDLERS
+   */
+  .setHandlers(function () {
+    console.log('handlers init');
+  })
+
   /**
    * FIRST STEP
    */
@@ -220,8 +251,12 @@ window.app = new _StepSystem.StepSystem($('.container'));
         return { status: true };
       },
       beforeNext: function beforeNext() {
-        console.log('first-step beforeNext');
+        console.log('first-step beforeNext', _this);
+        app.current_step.data.lol = 'lol';
         return { status: true };
+      },
+      onRender: function onRender() {
+        app.container.find('.step').css({ 'color': 'green' });
       }
     }
   }))
@@ -231,6 +266,7 @@ window.app = new _StepSystem.StepSystem($('.container'));
    */
   .addStep(new _Step.Step({
     name: 'second-step',
+    next: 'third-step',
     methods: {
       beforeRender: function beforeRender() {
         console.log('second-step beforeRender');
@@ -238,10 +274,39 @@ window.app = new _StepSystem.StepSystem($('.container'));
       },
       beforeNext: function beforeNext() {
         console.log('second-step beforeNext');
+        app.current_step.data.azaza = 'azaza';
         return { status: true };
+      },
+      onRender: function onRender() {
+        app.container.find('.step').css({ 'color': 'red' });
+      }
+    }
+  }))
+
+  /**
+   * THIRD STEP
+   */
+  .addStep(new _Step.Step({
+    name: 'third-step',
+    methods: {
+      beforeRender: function beforeRender() {
+        console.log('third-step beforeRender');
+        return { status: true };
+      },
+      beforeNext: function beforeNext() {
+        console.log('third-step beforeNext');
+        app.current_step.data.kek = 'kek';
+        return { status: true };
+      },
+      onRender: function onRender() {
+        app.container.find('.step').css({ 'color': 'blue' });
       }
     }
   }));
+
+  app.onFinish = function () {
+    console.log(app.collectData());
+  };
 
   app.init(first_step);
 })(window.app);

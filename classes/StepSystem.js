@@ -15,6 +15,8 @@ export class StepSystem {
     this._steps = {}
     this._current_step = null
     this._container = container
+    this.steps_past = []
+    this.onFinish = null
     this.commonHandlers = function () {}
   }
 
@@ -56,6 +58,9 @@ export class StepSystem {
       return this
     }
     this.container.find('.step').html(step.template || this._container.find(`#${step.name}`).html())
+    if (step.methods.onRender) {
+      step.methods.onRender()
+    }
   }
 
   goNext () {
@@ -67,7 +72,11 @@ export class StepSystem {
       return this
     }
     if (next_step) {
-      this.goToStep(this.step(next_step))
+      this.goToStep(this.step(next_step), curr_step.name)
+    } else {
+      if (this.onFinish) {
+        this.onFinish()
+      }
     }
   }
 
@@ -81,19 +90,32 @@ export class StepSystem {
     }
     if (prev_step) {
       this.goToStep(this.step(prev_step))
+      this.steps_past.pop()
     }
   }
 
   goToStep (step, from = null) {
-    let curr_step = this.current_step || {}
-    step.from = curr_step.name || null
+    if (from) {
+      step.from = from
+    }
     this._current_step = step.name
     this.render(step)
+    if (this.steps_past.indexOf(step.name) < 0) {
+      this.steps_past.push(step.name)
+    }
+  }
+
+  collectData () {
+    let data = {}
+    for (var step in this.steps_past) {
+      data[this.steps_past[step]] = this.step(this.steps_past[step]).data
+    }
+    return data
   }
 
   init (from_step) {
     this.commonHandlers()
     this._current_step = from_step
-    this.render(this.step(this._current_step))
+    this.goToStep(this.step(this._current_step))
   }
 }

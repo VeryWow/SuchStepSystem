@@ -42,7 +42,7 @@ gulp.task('webserver', function() {
   connect.server({
     root: './example/dist',
     port: port,
-    fallback: 'index.html'
+    fallback: './example/dist/index.html'
   });
   gulp.src(__filename)
     .pipe(open({uri: 'http://localhost:'+port}));

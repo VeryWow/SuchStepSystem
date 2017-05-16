@@ -9,6 +9,13 @@ window.app = new StepSystem($('.container'));
 
   app
   /**
+   * COMMON HANDLERS
+   */
+  .setHandlers(() => {
+    console.log('handlers init')
+  })
+  
+  /**
    * FIRST STEP
    */
   .addStep(new Step({
@@ -20,8 +27,12 @@ window.app = new StepSystem($('.container'));
         return { status: true }
       },
       beforeNext: () => {
-        console.log('first-step beforeNext')
+        console.log('first-step beforeNext', this)
+        app.current_step.data.lol = 'lol'
         return { status: true }
+      },
+      onRender: () => {
+        app.container.find('.step').css({'color': 'green'})
       }
     }
   }))
@@ -31,6 +42,7 @@ window.app = new StepSystem($('.container'));
    */
   .addStep(new Step({
     name: 'second-step',
+    next: 'third-step',
     methods: {
       beforeRender: () => {
         console.log('second-step beforeRender')
@@ -38,10 +50,39 @@ window.app = new StepSystem($('.container'));
       },
       beforeNext: () => {
         console.log('second-step beforeNext')
+        app.current_step.data.azaza = 'azaza'
         return { status: true }
+      },
+      onRender: () => {
+        app.container.find('.step').css({'color': 'red'})
       }
     }
   }))
+
+  /**
+   * THIRD STEP
+   */
+  .addStep(new Step({
+    name: 'third-step',
+    methods: {
+      beforeRender: () => {
+        console.log('third-step beforeRender')
+        return { status: true }
+      },
+      beforeNext: () => {
+        console.log('third-step beforeNext')
+        app.current_step.data.kek = 'kek'
+        return { status: true }
+      },
+      onRender: () => {
+        app.container.find('.step').css({'color': 'blue'})
+      }
+    }
+  }))
+
+  app.onFinish = () => {
+    console.log(app.collectData())
+  }
 
   app.init(first_step)
 
