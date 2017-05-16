@@ -89,7 +89,7 @@ export class StepSystem {
       return this
     }
     if (next_step) {
-      this.goToStep(this.step(next_step), curr_step.name)
+      this.goToStep(this.step(next_step), { from: curr_step.name })
     } else {
       if (this.onFinish) {
         this.onFinish()
@@ -106,18 +106,20 @@ export class StepSystem {
       return this
     }
     if (prev_step) {
-      this.goToStep(this.step(prev_step))
       this.steps_past.pop()
+      this.goToStep(this.step(prev_step), { is_back: true })
     }
   }
 
-  goToStep (step, from = null) {
+  goToStep (step, params = {}) {
+    let from = params.from || null
+    let is_back = params.is_back || false
     if (from) {
       step.from = from
     }
     this._current_step = step.name
     this.render(step)
-    if (this.steps_past.indexOf(step.name) < 0) {
+    if (this.steps_past.indexOf(step.name) < 0 && !is_back) {
       this.steps_past.push(step.name)
     }
     this.updateProgress()

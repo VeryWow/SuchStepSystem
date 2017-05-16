@@ -18,6 +18,7 @@ var Step = exports.Step = function () {
     this.next = params.next;
     this.methods = params.methods || {};
     this.template = params.template || '';
+    this.ignore_progress = params.ignore_progress || false;
     this.from = null;
     this._data = {};
     params.interceptors = params.interceptors || {};
@@ -163,7 +164,7 @@ var StepSystem = exports.StepSystem = function () {
         return this;
       }
       if (next_step) {
-        this.goToStep(this.step(next_step), curr_step.name);
+        this.goToStep(this.step(next_step), { from: curr_step.name });
       } else {
         if (this.onFinish) {
           this.onFinish();
@@ -181,21 +182,23 @@ var StepSystem = exports.StepSystem = function () {
         return this;
       }
       if (prev_step) {
-        this.goToStep(this.step(prev_step));
         this.steps_past.pop();
+        this.goToStep(this.step(prev_step), { is_back: true });
       }
     }
   }, {
     key: 'goToStep',
     value: function goToStep(step) {
-      var from = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
+      var from = params.from || null;
+      var is_back = params.is_back || false;
       if (from) {
         step.from = from;
       }
       this._current_step = step.name;
       this.render(step);
-      if (this.steps_past.indexOf(step.name) < 0) {
+      if (this.steps_past.indexOf(step.name) < 0 && !is_back) {
         this.steps_past.push(step.name);
       }
       this.updateProgress();
