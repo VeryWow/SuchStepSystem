@@ -20,7 +20,7 @@ var Step = exports.Step = function () {
     this.template = params.template || '';
     this.ignore_progress = params.ignore_progress || false;
     this.from = null;
-    this._data = {};
+    this._data = params.data || {};
     params.interceptors = params.interceptors || {};
     this.interceptors = {
       beforeRender: params.interceptors.beforeRender || this.methods.beforeRender || function () {
@@ -76,7 +76,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 /**
  * StepSystem v1.0.0
- * Last update: 15.05.2017
+ * Last update: 17.05.2017
  *
  * Dependencies: jQuery
  *
@@ -87,17 +87,20 @@ var StepSystem = exports.StepSystem = function () {
   /**
    * @param  {jQuery element} container
    */
-  function StepSystem(container) {
+  function StepSystem(params) {
     _classCallCheck(this, StepSystem);
 
     this._steps = {};
     this._current_step = null;
-    this._container = container;
+    this._container = params.container || $('.step-system');
+    this._step_container = params.step_class || '.step';
+    this._next_timeout = null;
     this.steps_past = [];
     this.progress = 0;
     this.commonHandlers = function () {};
     this.onFinish = function () {};
     this.onProgress = function () {};
+    this.onStepRender = function () {};
   }
 
   /**
@@ -132,7 +135,9 @@ var StepSystem = exports.StepSystem = function () {
         if (_br.onError) _br.onError();
         return this;
       }
-      this.container.find('.step').html(step.template || this._container.find('#' + step.name).html());
+      this.container.find(this._step_container).html(step.template || this._container.find('#' + step.name).html());
+      this.container.find(this._step_container).attr('data-name', step.name);
+      this.onStepRender(step);
       if (step.methods.onRender) {
         step.methods.onRender();
       }
@@ -152,6 +157,17 @@ var StepSystem = exports.StepSystem = function () {
       }
       this.progress = this.steps_past.length * 100 / (this.steps_past.length + future_steps);
       this.onProgress(this.progress);
+    }
+  }, {
+    key: 'goNextTimeout',
+    value: function goNextTimeout() {
+      var timeout = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 300;
+
+      var $this = this;
+      clearTimeout(this._next_timeout);
+      this._next_timeout = setTimeout(function () {
+        $this.goNext();
+      }, timeout);
     }
   }, {
     key: 'goNext',
