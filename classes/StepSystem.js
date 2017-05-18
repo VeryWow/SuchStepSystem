@@ -56,8 +56,12 @@ export class StepSystem {
     return this._steps
   }
 
+  get all_data () {
+    return this.collectData()
+  }
+
   render (step) {
-    let _br = step.interceptors.beforeRender()
+    let _br = step.interceptors.beforeRender(step)
     if (!_br.status) {
       if (_br.onError) _br.onError()
       return this
@@ -66,7 +70,7 @@ export class StepSystem {
     this.container.find(this._step_container).attr('data-name', step.name)
     this.onStepRender(step)
     if (step.methods.onRender) {
-      step.methods.onRender()
+      step.methods.onRender(step)
     }
   }
 
@@ -96,7 +100,7 @@ export class StepSystem {
   goNext () {
     let curr_step = this.current_step || {}
     let next_step = curr_step.next || null
-    let _bn = curr_step.interceptors.beforeNext()
+    let _bn = curr_step.interceptors.beforeNext(curr_step)
     if (!_bn.status) {
       if (_bn.onError) _bn.onError()
       return this
@@ -113,13 +117,15 @@ export class StepSystem {
   goBack () {
     let curr_step = this.current_step || {}
     let prev_step = curr_step.from || null
-    let _bb = curr_step.interceptors.beforeBack()
+    let _bb = curr_step.interceptors.beforeBack(curr_step) || { status: false }
     if (!_bb.status) {
       if (_bb.onError) _bb.onError()
       return this
     }
     if (prev_step) {
-      this.steps_past.pop()
+      if (_bb.status) {
+        this.steps_past.pop()
+      }
       this.goToStep(this.step(prev_step), { is_back: true })
     }
   }
@@ -130,9 +136,9 @@ export class StepSystem {
     if (from) {
       step.from = from
     }
-    this._current_step = step.name
     this.render(step)
-    if (this.steps_past.indexOf(step.name) < 0 && !is_back) {
+    this._current_step = step.name
+    if (this.steps_past.indexOf(step.name) < 0) {
       this.steps_past.push(step.name)
     }
     this.updateProgress()
@@ -140,15 +146,18 @@ export class StepSystem {
 
   collectData () {
     let data = {}
-    for (var step in this.steps_past) {
-      data[this.steps_past[step]] = this.step(this.steps_past[step]).data
+    for (var step in this.steps) {
+      if (this.step(step).data) {
+        data[step] = this.step(step).data
+      }
     }
     return data
   }
 
-  init (from_step) {
+  init (first_step) {
+    this.first_step = first_step
     this.commonHandlers()
-    this._current_step = from_step
+    this._current_step = this.first_step
     this.goToStep(this.step(this._current_step))
   }
 }

@@ -20,6 +20,7 @@ var Step = exports.Step = function () {
     this.template = params.template || '';
     this.ignore_progress = params.ignore_progress || false;
     this.from = null;
+    this.required = params.required || false;
     this._data = params.data || {};
     params.interceptors = params.interceptors || {};
     this.interceptors = {
@@ -130,7 +131,7 @@ var StepSystem = exports.StepSystem = function () {
   }, {
     key: 'render',
     value: function render(step) {
-      var _br = step.interceptors.beforeRender();
+      var _br = step.interceptors.beforeRender(step);
       if (!_br.status) {
         if (_br.onError) _br.onError();
         return this;
@@ -139,7 +140,7 @@ var StepSystem = exports.StepSystem = function () {
       this.container.find(this._step_container).attr('data-name', step.name);
       this.onStepRender(step);
       if (step.methods.onRender) {
-        step.methods.onRender();
+        step.methods.onRender(step);
       }
     }
   }, {
@@ -174,7 +175,7 @@ var StepSystem = exports.StepSystem = function () {
     value: function goNext() {
       var curr_step = this.current_step || {};
       var next_step = curr_step.next || null;
-      var _bn = curr_step.interceptors.beforeNext();
+      var _bn = curr_step.interceptors.beforeNext(curr_step);
       if (!_bn.status) {
         if (_bn.onError) _bn.onError();
         return this;
@@ -192,13 +193,15 @@ var StepSystem = exports.StepSystem = function () {
     value: function goBack() {
       var curr_step = this.current_step || {};
       var prev_step = curr_step.from || null;
-      var _bb = curr_step.interceptors.beforeBack();
+      var _bb = curr_step.interceptors.beforeBack(curr_step) || { status: false };
       if (!_bb.status) {
         if (_bb.onError) _bb.onError();
         return this;
       }
       if (prev_step) {
-        this.steps_past.pop();
+        if (_bb.status) {
+          this.steps_past.pop();
+        }
         this.goToStep(this.step(prev_step), { is_back: true });
       }
     }
@@ -212,9 +215,9 @@ var StepSystem = exports.StepSystem = function () {
       if (from) {
         step.from = from;
       }
-      this._current_step = step.name;
       this.render(step);
-      if (this.steps_past.indexOf(step.name) < 0 && !is_back) {
+      this._current_step = step.name;
+      if (this.steps_past.indexOf(step.name) < 0) {
         this.steps_past.push(step.name);
       }
       this.updateProgress();
@@ -223,16 +226,19 @@ var StepSystem = exports.StepSystem = function () {
     key: 'collectData',
     value: function collectData() {
       var data = {};
-      for (var step in this.steps_past) {
-        data[this.steps_past[step]] = this.step(this.steps_past[step]).data;
+      for (var step in this.steps) {
+        if (this.step(step).data) {
+          data[step] = this.step(step).data;
+        }
       }
       return data;
     }
   }, {
     key: 'init',
-    value: function init(from_step) {
+    value: function init(first_step) {
+      this.first_step = first_step;
       this.commonHandlers();
-      this._current_step = from_step;
+      this._current_step = this.first_step;
       this.goToStep(this.step(this._current_step));
     }
   }, {
@@ -249,6 +255,11 @@ var StepSystem = exports.StepSystem = function () {
     key: 'steps',
     get: function get() {
       return this._steps;
+    }
+  }, {
+    key: 'all_data',
+    get: function get() {
+      return this.collectData();
     }
   }]);
 

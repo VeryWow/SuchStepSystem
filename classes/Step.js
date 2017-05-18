@@ -7,6 +7,7 @@ export class Step {
     this.template = params.template || ''
     this.ignore_progress = params.ignore_progress || false
     this.from = null
+    this.required = params.required || false
     this._data = params.data || {}
     params.interceptors = params.interceptors || {}
     this.interceptors = {
