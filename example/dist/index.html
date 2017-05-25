@@ -7,6 +7,10 @@
     template {
       display: none;
     }
+    .next, .back {
+      cursor: pointer;
+      color: #00f;
+    }
   </style>
 </head>
 <body>
@@ -16,14 +20,24 @@
 
     <template id="first-step">
       <p>this is the first</p>
+      <div class="back">Назад</div>
+      <div class="next">Далее</div>
     </template>
 
     <template id="second-step">
       <p>this is the second</p>
+      <div class="back">Назад</div>
+      <div class="next">Далее</div>
     </template>
 
     <template id="third-step">
       <p>this is the third</p>
+      <div class="back">Назад</div>
+      <div class="next">Завершить</div>
+    </template>
+
+    <template id="finish">
+      <p>FINISH!</p>
     </template>
 
   </div>

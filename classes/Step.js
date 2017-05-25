@@ -6,6 +6,7 @@ export class Step {
     this.methods = params.methods || {}
     this.template = params.template || ''
     this.ignore_progress = params.ignore_progress || false
+    this.hide_progress = params.hide_progress || false
     this.from = null
     this.required = params.required || false
     this._data = params.data || {}

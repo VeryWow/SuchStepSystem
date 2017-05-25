@@ -19,6 +19,7 @@ var Step = exports.Step = function () {
     this.methods = params.methods || {};
     this.template = params.template || '';
     this.ignore_progress = params.ignore_progress || false;
+    this.hide_progress = params.hide_progress || false;
     this.from = null;
     this.required = params.required || false;
     this._data = params.data || {};
@@ -77,7 +78,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 /**
  * StepSystem v1.0.0
- * Last update: 17.05.2017
+ * Last update: 19.05.2017
  *
  * Dependencies: jQuery
  *
@@ -160,6 +161,13 @@ var StepSystem = exports.StepSystem = function () {
       this.onProgress(this.progress);
     }
   }, {
+    key: 'finish',
+    value: function finish() {
+      if (this.onFinish) {
+        this.onFinish();
+      }
+    }
+  }, {
     key: 'goNextTimeout',
     value: function goNextTimeout() {
       var timeout = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 300;
@@ -183,9 +191,7 @@ var StepSystem = exports.StepSystem = function () {
       if (next_step) {
         this.goToStep(this.step(next_step), { from: curr_step.name });
       } else {
-        if (this.onFinish) {
-          this.onFinish();
-        }
+        this.finish();
       }
     }
   }, {
@@ -273,7 +279,10 @@ var _Step = require('../classes/Step');
 
 var _StepSystem = require('../classes/StepSystem');
 
-window.app = new _StepSystem.StepSystem($('.container'));
+window.app = new _StepSystem.StepSystem({
+  container: $('.container'),
+  step_class: '.step'
+});
 
 (function (app) {
   var _this = this;
@@ -295,16 +304,16 @@ window.app = new _StepSystem.StepSystem($('.container'));
     name: 'first-step',
     next: 'second-step',
     methods: {
-      beforeRender: function beforeRender() {
+      beforeRender: function beforeRender(step) {
         console.log('first-step beforeRender');
         return { status: true };
       },
-      beforeNext: function beforeNext() {
+      beforeNext: function beforeNext(step) {
         console.log('first-step beforeNext', _this);
-        app.current_step.data.lol = 'lol';
+        step.data.lol = 'lol';
         return { status: true };
       },
-      onRender: function onRender() {
+      onRender: function onRender(step) {
         app.container.find('.step').css({ 'color': 'green' });
       }
     }
@@ -317,16 +326,16 @@ window.app = new _StepSystem.StepSystem($('.container'));
     name: 'second-step',
     next: 'third-step',
     methods: {
-      beforeRender: function beforeRender() {
+      beforeRender: function beforeRender(step) {
         console.log('second-step beforeRender');
         return { status: true };
       },
-      beforeNext: function beforeNext() {
+      beforeNext: function beforeNext(step) {
         console.log('second-step beforeNext');
-        app.current_step.data.azaza = 'azaza';
+        step.data.azaza = 'azaza';
         return { status: true };
       },
-      onRender: function onRender() {
+      onRender: function onRender(step) {
         app.container.find('.step').css({ 'color': 'red' });
       }
     }
@@ -338,27 +347,70 @@ window.app = new _StepSystem.StepSystem($('.container'));
   .addStep(new _Step.Step({
     name: 'third-step',
     methods: {
-      beforeRender: function beforeRender() {
+      beforeRender: function beforeRender(step) {
         console.log('third-step beforeRender');
         return { status: true };
       },
-      beforeNext: function beforeNext() {
+      beforeNext: function beforeNext(step) {
         console.log('third-step beforeNext');
-        app.current_step.data.kek = 'kek';
+        step.data.kek = 'kek';
         return { status: true };
       },
-      onRender: function onRender() {
+      onRender: function onRender(step) {
         app.container.find('.step').css({ 'color': 'blue' });
       }
     }
+  }))
+
+  /**
+   * FINISH
+   */
+  .addStep(new _Step.Step({
+    name: 'finish',
+    hide_progress: true,
+    ignore_progress: true,
+    methods: {
+      beforeRender: function beforeRender(step) {
+        console.log('finish beforeRender');
+        return { status: true };
+      },
+      beforeNext: function beforeNext(step) {
+        console.log('finish beforeNext');
+        step.data.kek = 'kek';
+        return { status: true };
+      },
+      onRender: function onRender(step) {}
+    }
   }));
 
+  /**
+   * GLOBAL
+   */
+
   app.onFinish = function () {
+    app.goToStep(app.step('finish'));
     console.log(app.collectData());
   };
 
   app.onProgress = function (progress) {
     app.container.find('.progress').html(Math.floor(progress) + '%');
+  };
+
+  app.onStepRender = function (step) {
+    app.container.find('.step .next').click(function () {
+      app.goNext();
+    });
+    app.container.find('.step .back').click(function () {
+      app.goBack();
+    });
+
+    console.log(step);
+
+    if (step.hide_progress) {
+      app.container.find('.progress').hide();
+    } else {
+      app.container.find('.progress').show();
+    }
   };
 
   app.init(first_step);
