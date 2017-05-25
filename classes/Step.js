@@ -5,8 +5,11 @@ export class Step {
     this.next = params.next
     this.methods = params.methods || {}
     this.template = params.template || ''
+    this.ignore_progress = params.ignore_progress || false
+    this.hide_progress = params.hide_progress || false
     this.from = null
-    this._data = {}
+    this.required = params.required || false
+    this._data = params.data || {}
     params.interceptors = params.interceptors || {}
     this.interceptors = {
       beforeRender: params.interceptors.beforeRender || this.methods.beforeRender || function () {
