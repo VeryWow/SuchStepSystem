@@ -25,6 +25,9 @@ var Step = exports.Step = function () {
     this._data = params.data || {};
     params.interceptors = params.interceptors || {};
     this.interceptors = {
+      isSkip: params.interceptors.isSkip || this.methods.isSkip || function () {
+        return false;
+      },
       beforeRender: params.interceptors.beforeRender || this.methods.beforeRender || function () {
         return { status: true };
       },
@@ -77,8 +80,8 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 /**
- * StepSystem v1.0.0
- * Last update: 19.05.2017
+ * StepSystem v1.0.1
+ * Last update: 25.05.2017
  *
  * Dependencies: jQuery
  *
@@ -161,13 +164,6 @@ var StepSystem = exports.StepSystem = function () {
       this.onProgress(this.progress);
     }
   }, {
-    key: 'finish',
-    value: function finish() {
-      if (this.onFinish) {
-        this.onFinish();
-      }
-    }
-  }, {
     key: 'goNextTimeout',
     value: function goNextTimeout() {
       var timeout = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 300;
@@ -191,8 +187,11 @@ var StepSystem = exports.StepSystem = function () {
       if (next_step) {
         this.goToStep(this.step(next_step), { from: curr_step.name });
       } else {
-        this.finish();
+        if (this.onFinish) {
+          this.onFinish();
+        }
       }
+      return this;
     }
   }, {
     key: 'goBack',
@@ -210,12 +209,17 @@ var StepSystem = exports.StepSystem = function () {
         }
         this.goToStep(this.step(prev_step), { is_back: true });
       }
+      return this;
     }
   }, {
     key: 'goToStep',
     value: function goToStep(step) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
+      var is_skip = step.interceptors.isSkip(step);
+      if (is_skip) {
+        step = this.step(step.next);
+      }
       var from = params.from || null;
       var is_back = params.is_back || false;
       if (from) {
@@ -227,6 +231,7 @@ var StepSystem = exports.StepSystem = function () {
         this.steps_past.push(step.name);
       }
       this.updateProgress();
+      return this;
     }
   }, {
     key: 'collectData',
@@ -326,6 +331,9 @@ window.app = new _StepSystem.StepSystem({
     name: 'second-step',
     next: 'third-step',
     methods: {
+      isSkip: function isSkip(step) {
+        return app.step('first-step').data.lol == 'lol';
+      },
       beforeRender: function beforeRender(step) {
         console.log('second-step beforeRender');
         return { status: true };
