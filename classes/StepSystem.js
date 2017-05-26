@@ -1,6 +1,6 @@
 /**
- * StepSystem v1.0.0
- * Last update: 19.05.2017
+ * StepSystem v1.0.1
+ * Last update: 25.05.2017
  *
  * Dependencies: jQuery
  *
@@ -89,12 +89,6 @@ export class StepSystem {
     this.onProgress(this.progress)
   }
 
-  finish () {
-    if (this.onFinish) {
-      this.onFinish()
-    }
-  }
-
   goNextTimeout (timeout = 300) {
     const $this = this
     clearTimeout(this._next_timeout)
@@ -114,8 +108,11 @@ export class StepSystem {
     if (next_step) {
       this.goToStep(this.step(next_step), { from: curr_step.name })
     } else {
-      this.finish()
+      if (this.onFinish) {
+        this.onFinish()
+      }
     }
+    return this
   }
 
   goBack () {
@@ -132,9 +129,14 @@ export class StepSystem {
       }
       this.goToStep(this.step(prev_step), { is_back: true })
     }
+    return this
   }
 
   goToStep (step, params = {}) {
+    let is_skip = step.interceptors.isSkip(step)
+    if (is_skip) {
+      step = this.step(step.next)
+    }
     let from = params.from || null
     let is_back = params.is_back || false
     if (from) {
@@ -146,6 +148,7 @@ export class StepSystem {
       this.steps_past.push(step.name)
     }
     this.updateProgress()
+    return this
   }
 
   collectData () {

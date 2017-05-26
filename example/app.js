@@ -48,6 +48,9 @@ window.app = new StepSystem({
     name: 'second-step',
     next: 'third-step',
     methods: {
+      isSkip: (step) => {
+        return app.step('first-step').data.lol == 'lol'
+      },
       beforeRender: (step) => {
         console.log('second-step beforeRender')
         return { status: true }

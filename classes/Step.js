@@ -12,6 +12,9 @@ export class Step {
     this._data = params.data || {}
     params.interceptors = params.interceptors || {}
     this.interceptors = {
+      isSkip: params.interceptors.isSkip || this.methods.isSkip || function () {
+        return false
+      },
       beforeRender: params.interceptors.beforeRender || this.methods.beforeRender || function () {
         return {status: true}
       },
