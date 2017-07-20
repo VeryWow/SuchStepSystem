@@ -44,6 +44,18 @@ var Step = exports.Step = function () {
 
 
   _createClass(Step, [{
+    key: 'call',
+    value: function call(method) {
+      var fnc = this.methods[method] || this.interceptors[method];
+      if (fnc) {
+        for (var _len = arguments.length, args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+          args[_key - 1] = arguments[_key];
+        }
+
+        return fnc.apply(this, args);
+      }
+    }
+  }, {
     key: 'goNext',
     get: function get() {
       return this.parent.goNext;
@@ -62,6 +74,11 @@ var Step = exports.Step = function () {
     key: 'data',
     get: function get() {
       return this._data;
+    }
+  }, {
+    key: 'container',
+    get: function get() {
+      return this.parent.container.find(this.parent._step_container);
     }
   }]);
 
@@ -106,6 +123,12 @@ var StepSystem = exports.StepSystem = function () {
     this.onFinish = function () {};
     this.onProgress = function () {};
     this.onStepRender = function () {};
+
+    this._global_interceptors = {
+      isSkipGlobal: function isSkipGlobal(step) {
+        return step.interceptors.isSkip(step);
+      }
+    };
   }
 
   /**
@@ -122,6 +145,12 @@ var StepSystem = exports.StepSystem = function () {
       return this;
     }
   }, {
+    key: 'setGlobalInterceptors',
+    value: function setGlobalInterceptors(interceptors) {
+      this._global_interceptors = Object.assign(this._global_interceptors, interceptors);
+      return this;
+    }
+  }, {
     key: 'setHandlers',
     value: function setHandlers(cb) {
       this.commonHandlers = cb;
@@ -135,17 +164,15 @@ var StepSystem = exports.StepSystem = function () {
   }, {
     key: 'render',
     value: function render(step) {
-      var _br = step.interceptors.beforeRender(step);
+      var _br = step.call('beforeRender', step);
       if (!_br.status) {
-        if (_br.onError) _br.onError();
+        if (_br.onError) _br.onError.apply(step);
         return this;
       }
       this.container.find(this._step_container).html(step.template || this._container.find('#' + step.name).html());
       this.container.find(this._step_container).attr('data-name', step.name);
       this.onStepRender(step);
-      if (step.methods.onRender) {
-        step.methods.onRender(step);
-      }
+      step.call('onRender', step);
     }
   }, {
     key: 'updateProgress',
@@ -178,12 +205,12 @@ var StepSystem = exports.StepSystem = function () {
     key: 'goNext',
     value: function goNext() {
       var curr_step = this.current_step || {};
-      var next_step = curr_step.next || null;
-      var _bn = curr_step.interceptors.beforeNext(curr_step);
+      var _bn = curr_step.call('beforeNext', curr_step);
       if (!_bn.status) {
-        if (_bn.onError) _bn.onError();
+        if (_bn.onError) _bn.onError.apply(curr_step);
         return this;
       }
+      var next_step = curr_step.next || null;
       if (next_step) {
         this.goToStep(this.step(next_step), { from: curr_step.name });
       } else {
@@ -198,9 +225,9 @@ var StepSystem = exports.StepSystem = function () {
     value: function goBack() {
       var curr_step = this.current_step || {};
       var prev_step = curr_step.from || null;
-      var _bb = curr_step.interceptors.beforeBack(curr_step) || { status: false };
+      var _bb = curr_step.call('beforeBack', curr_step) || { status: false };
       if (!_bb.status) {
-        if (_bb.onError) _bb.onError();
+        if (_bb.onError) _bb.onError.apply(curr_step);
         return this;
       }
       if (prev_step) {
@@ -216,7 +243,7 @@ var StepSystem = exports.StepSystem = function () {
     value: function goToStep(step) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
-      var is_skip = step.interceptors.isSkip(step);
+      var is_skip = this.global_interceptors.isSkipGlobal(step);
       if (is_skip) {
         step = this.step(step.next);
       }
@@ -251,6 +278,11 @@ var StepSystem = exports.StepSystem = function () {
       this.commonHandlers();
       this._current_step = this.first_step;
       this.goToStep(this.step(this._current_step));
+    }
+  }, {
+    key: 'global_interceptors',
+    get: function get() {
+      return this._global_interceptors;
     }
   }, {
     key: 'current_step',
@@ -387,7 +419,12 @@ window.app = new _StepSystem.StepSystem({
         step.data.kek = 'kek';
         return { status: true };
       },
-      onRender: function onRender(step) {}
+      onRender: function onRender(step) {
+        step.call('anyOfInternalMethods');
+      },
+      anyOfInternalMethods: function anyOfInternalMethods() {
+        alert('Hey there');
+      }
     }
   }));
 

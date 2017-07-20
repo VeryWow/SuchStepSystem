@@ -104,7 +104,12 @@ window.app = new StepSystem({
         step.data.kek = 'kek'
         return { status: true }
       },
-      onRender: (step) => { }
+      onRender: (step) => {
+        step.call('anyOfInternalMethods')
+      },
+      anyOfInternalMethods: () => {
+        alert ('Hey there')
+      }
     }
   }))
 
