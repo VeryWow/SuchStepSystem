@@ -23,6 +23,12 @@ export class StepSystem {
     this.onFinish = function () {}
     this.onProgress = function () {}
     this.onStepRender = function () {}
+
+    this._global_interceptors = {
+      isSkipGlobal: function (step) {
+        return step.interceptors.isSkip(step)
+      }
+    }
   }
 
   /**
@@ -35,9 +41,18 @@ export class StepSystem {
     return this
   }
 
+  setGlobalInterceptors (interceptors) {
+    this._global_interceptors = Object.assign(this._global_interceptors, interceptors)
+    return this
+  }
+
   setHandlers (cb) {
     this.commonHandlers = cb
     return this
+  }
+
+  get global_interceptors () {
+    return this._global_interceptors
   }
 
   get current_step () {
@@ -61,17 +76,15 @@ export class StepSystem {
   }
 
   render (step) {
-    let _br = step.interceptors.beforeRender(step)
+    let _br = step.call('beforeRender', step)
     if (!_br.status) {
-      if (_br.onError) _br.onError()
+      if (_br.onError) _br.onError.apply(step)
       return this
     }
     this.container.find(this._step_container).html(step.template || this._container.find(`#${step.name}`).html())
     this.container.find(this._step_container).attr('data-name', step.name)
     this.onStepRender(step)
-    if (step.methods.onRender) {
-      step.methods.onRender(step)
-    }
+    step.call('onRender', step)
   }
 
   updateProgress () {
@@ -99,12 +112,12 @@ export class StepSystem {
 
   goNext () {
     let curr_step = this.current_step || {}
-    let next_step = curr_step.next || null
-    let _bn = curr_step.interceptors.beforeNext(curr_step)
+    let _bn = curr_step.call('beforeNext', curr_step)
     if (!_bn.status) {
-      if (_bn.onError) _bn.onError()
+      if (_bn.onError) _bn.onError.apply(curr_step)
       return this
     }
+    let next_step = curr_step.next || null
     if (next_step) {
       this.goToStep(this.step(next_step), { from: curr_step.name })
     } else {
@@ -118,9 +131,9 @@ export class StepSystem {
   goBack () {
     let curr_step = this.current_step || {}
     let prev_step = curr_step.from || null
-    let _bb = curr_step.interceptors.beforeBack(curr_step) || { status: false }
+    let _bb = curr_step.call('beforeBack', curr_step) || { status: false }
     if (!_bb.status) {
-      if (_bb.onError) _bb.onError()
+      if (_bb.onError) _bb.onError.apply(curr_step)
       return this
     }
     if (prev_step) {
@@ -133,7 +146,7 @@ export class StepSystem {
   }
 
   goToStep (step, params = {}) {
-    let is_skip = step.interceptors.isSkip(step)
+    let is_skip = this.global_interceptors.isSkipGlobal(step)
     if (is_skip) {
       step = this.step(step.next)
     }

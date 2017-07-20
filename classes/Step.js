@@ -35,4 +35,15 @@ export class Step {
   get data () {
     return this._data
   }
+
+  get container () {
+    return this.parent.container.find(this.parent._step_container)
+  }
+
+  call (method, ...args) {
+    let fnc = this.methods[method] || this.interceptors[method]
+    if (fnc) {
+      return fnc.apply(this, args)
+    }
+  }
 }
