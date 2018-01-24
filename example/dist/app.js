@@ -127,6 +127,16 @@ var StepSystem = exports.StepSystem = function () {
     this._global_interceptors = {
       isSkipGlobal: function isSkipGlobal(step) {
         return step.interceptors.isSkip(step);
+      },
+      beforeNext: function beforeNext(step) {
+        return new Promise(function (resolve) {
+          resolve();
+        });
+      },
+      beforeBack: function beforeBack(step) {
+        return new Promise(function (resolve) {
+          resolve();
+        });
       }
     };
   }
@@ -204,38 +214,48 @@ var StepSystem = exports.StepSystem = function () {
   }, {
     key: 'goNext',
     value: function goNext() {
+      var _this = this;
+
       var curr_step = this.current_step || {};
-      var _bn = curr_step.call('beforeNext', curr_step);
-      if (!_bn.status) {
-        if (_bn.onError) _bn.onError.apply(curr_step);
-        return this;
-      }
-      var next_step = curr_step.next || null;
-      if (next_step) {
-        this.goToStep(this.step(next_step), { from: curr_step.name });
-      } else {
-        if (this.onFinish) {
-          this.onFinish();
+      this.global_interceptors.beforeNext(curr_step).then(function () {
+        var _bn = curr_step.call('beforeNext', curr_step);
+        if (!_bn.status) {
+          if (_bn.onError) {
+            _bn.onError.apply(curr_step);
+          }
+          return;
         }
-      }
+        var next_step = curr_step.next || null;
+        if (next_step) {
+          _this.goToStep(_this.step(next_step), { from: curr_step.name });
+        } else {
+          if (_this.onFinish) {
+            _this.onFinish();
+          }
+        }
+      }).catch(function () {});
       return this;
     }
   }, {
     key: 'goBack',
     value: function goBack() {
+      var _this2 = this;
+
       var curr_step = this.current_step || {};
-      var prev_step = curr_step.from || null;
-      var _bb = curr_step.call('beforeBack', curr_step) || { status: false };
-      if (!_bb.status) {
-        if (_bb.onError) _bb.onError.apply(curr_step);
-        return this;
-      }
-      if (prev_step) {
-        if (_bb.status) {
-          this.steps_past.pop();
+      this.global_interceptors.beforeBack(curr_step).then(function () {
+        var prev_step = curr_step.from || null;
+        var _bb = curr_step.call('beforeBack', curr_step) || { status: false };
+        if (!_bb.status) {
+          if (_bb.onError) _bb.onError.apply(curr_step);
+          return;
         }
-        this.goToStep(this.step(prev_step), { is_back: true });
-      }
+        if (prev_step) {
+          if (_bb.status) {
+            _this2.steps_past.pop();
+          }
+          _this2.goToStep(_this2.step(prev_step), { is_back: true });
+        }
+      }).catch(function () {});
       return this;
     }
   }, {
@@ -243,7 +263,7 @@ var StepSystem = exports.StepSystem = function () {
     value: function goToStep(step) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
-      var is_skip = this.global_interceptors.isSkipGlobal(step);
+      var is_skip = this.global_interceptors.isSkipGlobal(step) || step.call('isSkip', step);
       if (is_skip) {
         step = this.step(step.next);
       }

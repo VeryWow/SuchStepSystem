@@ -27,6 +27,16 @@ export class StepSystem {
     this._global_interceptors = {
       isSkipGlobal: function (step) {
         return step.interceptors.isSkip(step)
+      },
+      beforeNext: function (step) {
+        return new Promise((resolve) => {
+          resolve()
+        })
+      },
+      beforeBack: function (step) {
+        return new Promise((resolve) => {
+          resolve()
+        })
       }
     }
   }
@@ -112,41 +122,51 @@ export class StepSystem {
 
   goNext () {
     let curr_step = this.current_step || {}
-    let _bn = curr_step.call('beforeNext', curr_step)
-    if (!_bn.status) {
-      if (_bn.onError) _bn.onError.apply(curr_step)
-      return this
-    }
-    let next_step = curr_step.next || null
-    if (next_step) {
-      this.goToStep(this.step(next_step), { from: curr_step.name })
-    } else {
-      if (this.onFinish) {
-        this.onFinish()
-      }
-    }
+    this.global_interceptors.beforeNext(curr_step)
+      .then(() => {
+        let _bn = curr_step.call('beforeNext', curr_step)
+        if (!_bn.status) {
+          if (_bn.onError) {
+            _bn.onError.apply(curr_step)
+          }
+          return
+        }
+        let next_step = curr_step.next || null
+        if (next_step) {
+          this.goToStep(this.step(next_step), { from: curr_step.name })
+        } else {
+          if (this.onFinish) {
+            this.onFinish()
+          }
+        }
+      })
+      .catch(() => { })
     return this
   }
 
   goBack () {
     let curr_step = this.current_step || {}
-    let prev_step = curr_step.from || null
-    let _bb = curr_step.call('beforeBack', curr_step) || { status: false }
-    if (!_bb.status) {
-      if (_bb.onError) _bb.onError.apply(curr_step)
-      return this
-    }
-    if (prev_step) {
-      if (_bb.status) {
-        this.steps_past.pop()
-      }
-      this.goToStep(this.step(prev_step), { is_back: true })
-    }
+    this.global_interceptors.beforeBack(curr_step)
+      .then(() => {
+        let prev_step = curr_step.from || null
+        let _bb = curr_step.call('beforeBack', curr_step) || { status: false }
+        if (!_bb.status) {
+          if (_bb.onError) _bb.onError.apply(curr_step)
+          return
+        }
+        if (prev_step) {
+          if (_bb.status) {
+            this.steps_past.pop()
+          }
+          this.goToStep(this.step(prev_step), { is_back: true })
+        }
+      })
+      .catch(() => {})
     return this
   }
 
   goToStep (step, params = {}) {
-    let is_skip = this.global_interceptors.isSkipGlobal(step)
+    let is_skip = this.global_interceptors.isSkipGlobal(step) || step.call('isSkip', step)
     if (is_skip) {
       step = this.step(step.next)
     }
